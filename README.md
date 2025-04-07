@@ -1,25 +1,39 @@
-# 
+# Chatbot Microservice (FastAPI)
 
 ## Overview
-This project demonstrates a simple **microservice-based architecture** using two virtual machines (**VM3** and **VM4**) connected via an internal network.
+This project sets up a **FastAPI-based chatbot microservice** running on **VM3**, which can be consumed by other services such as a frontend UI or external systems. It is a core part of a microservice architecture designed for intelligent, conversational interactions using a lightweight and modular backend.
 
-- **VM3 (Backend)**: Runs a FastAPI-based microservice.
-- **VM4 (Frontend)**: Runs a Flask-based UI that fetches data from VM3.
+---
 
 ## Architecture
-- **VM3 IP Address**: `192.168.100.1`
-- **VM4 IP Address**: `192.168.100.2`
-- **Backend API URL**: `http://192.168.100.1:8000/`
-- **Frontend UI URL**: `http://192.168.100.2:5000/`
+- **Microservice Location**: VM3
+- **API Base URL**: `http://192.168.100.1:8000/`
+- **Framework**: FastAPI
+- **Primary Functionality**: Exposes a chatbot endpoint that can be used for recommendations, summaries, or content suggestions.
+
+---
+
+## Features
+- Stateless REST API for chatbot interactions
+- JSON-based communication
+- Easy to integrate with frontend or other microservices
+
+---
 
 ## Setup Instructions
 
-### 1. Configure Networking
-Run the following on **VM3**:
+### 1. System Requirements
+- Python 3.8+
+- `pip` package manager
+- Linux-based VM (e.g., Ubuntu)
+
+### 2. Environment Configuration (VM3)
+
+#### Update Netplan for Internal Network
 ```bash
 sudo nano /etc/netplan/01-netcfg.yaml
 ```
-Add:
+Add the following configuration:
 ```yaml
 network:
   version: 2
@@ -28,76 +42,92 @@ network:
       addresses:
         - 192.168.100.1/24
 ```
-Apply changes:
+Apply the changes:
 ```bash
 sudo netplan apply
 ```
 
-### 2. Backend Setup (FastAPI on VM3)
+### 3. Backend Setup
+
+#### Clone the Repository
 ```bash
-mkdir app && cd app
+git clone -b main <repository_url>
+cd <repository_directory>
+```
+
+#### Create Virtual Environment and Install Dependencies
+```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install fastapi uvicorn
+pip install -r requirements.txt
 ```
-Create `app.py`:
+
+#### Example FastAPI App (app.py)
 ```python
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
 import socket
 
 app = FastAPI()
 
-@app.get("/")
-def home():
-    return {"message": f"Hello from {socket.gethostname()}!"}
+class Query(BaseModel):
+    message: str
+
+@app.post("/chat")
+async def chat(query: Query):
+    response = f"You said: {query.message}. Response from {socket.gethostname()}"
+    return {"response": response}
 ```
-Run the server:
+
+#### Run the FastAPI Server
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2
 ```
 
-### 3. Frontend Setup (Flask on VM4)
-```bash
-mkdir app2 && cd app2
-python3 -m venv venv
-source venv/bin/activate
-pip install flask requests
-```
-Create `ui.py`:
-```python
-from flask import Flask
-import requests
+---
 
-app = Flask(__name__)
-API_URL = "http://192.168.100.1:8000/"
+## API Specification
 
-@app.route("/")
-def home():
-    try:
-        response = requests.get(API_URL)
-        message = response.json().get("message", "No response")
-    except:
-        message = "VM3 is unreachable!"
-    
-    return f"<html><body><h2>Response from VM3:</h2><p>{message}</p></body></html>"
+### POST `/chat`
+- **Request Body**:
+```json
+{
+  "message": "Suggest me something for my mood."
+}
+```
+- **Response**:
+```json
+{
+  "response": "You said: Suggest me something for my mood. Response from chatbot-host"
+}
+```
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-```
-Run the UI:
-```bash
-python3 ui.py
-```
+---
 
 ## Testing
-1. Test the backend:
-   ```bash
-   curl http://192.168.100.1:8000/
-   ```
-2. Open the frontend in a browser:
-   ```
-   http://192.168.100.2:5000/
-   ```
-   - It should display `Hello from VM3!`
+1. Using `curl` from any device on the same network:
+```bash
+curl -X POST http://192.168.100.1:8000/chat -H "Content-Type: application/json" -d '{"message": "Hello!"}'
+```
 
+2. You can also connect this endpoint with a Flask-based frontend running on another VM (e.g., VM4).
 
+---
+
+## Future Enhancements
+- Integration with LLMs for natural language responses
+- Rate limiting and auth tokens
+- Docker and CI/CD pipeline
+- Load balancing and horizontal scaling
+
+---
+
+## License
+This project is licensed 
+
+---
+
+## Maintainers
+- Backend Architect: Harsh Pratap Singh
+- AI Model Integration: Harsh Pratap Singh
+- DevOps & Deployment: Harsh Pratap Singh
